@@ -1,11 +1,13 @@
-from collections import defaultdict
 import os
 import pickle
 import re
-import sublime
-import sublime_plugin
 import subprocess
 import time
+from collections import defaultdict
+
+import sublime
+import sublime_plugin
+
 
 class GitCommand(sublime_plugin.WindowCommand):
     @staticmethod
@@ -24,17 +26,17 @@ class GitCommand(sublime_plugin.WindowCommand):
 
     @staticmethod
     def run_command(command):
-        print("running def run_command("+str(command)+"):")
+        print("running def run_command(" + str(command) + "):")
         command = [arg for arg in re.split(r"\s+", command) if arg]
-        if command[0] == 'git':
+        if command[0] == "git":
             command[0] = GIT
-        return subprocess.check_output(command).decode('ascii').strip()
+        return subprocess.check_output(command).decode("ascii").strip()
 
     @staticmethod
     def getBranch():
         print("running def getBranch():")
         os.chdir(sublime.active_window().folders()[0])
-        return GitCommand.run_command('git rev-parse --abbrev-ref HEAD')
+        return GitCommand.run_command("git rev-parse --abbrev-ref HEAD")
 
 
 def _test_paths_for_executable(paths, test_file):
@@ -44,33 +46,34 @@ def _test_paths_for_executable(paths, test_file):
         if os.path.exists(file_path) and os.access(file_path, os.X_OK):
             return file_path
 
+
 def find_git():
     print("running def find_git():")
-    path = os.environ.get('PATH', '').split(os.pathsep)
-    if os.name == 'nt':
-        git_cmd = 'git.exe'
+    path = os.environ.get("PATH", "").split(os.pathsep)
+    if os.name == "nt":
+        git_cmd = "git.exe"
     else:
-        git_cmd = 'git'
+        git_cmd = "git"
 
     git_path = _test_paths_for_executable(path, git_cmd)
 
     if not git_path:
         # /usr/local/bin:/usr/local/git/bin
-        if os.name == 'nt':
+        if os.name == "nt":
             extra_paths = (
                 os.path.join(os.environ["ProgramFiles"], "Git", "bin"),
                 os.path.join(os.environ["ProgramFiles(x86)"], "Git", "bin"),
             )
         else:
-            extra_paths = (
-                '/usr/local/bin',
-                '/usr/local/git/bin',
-            )
+            extra_paths = ("/usr/local/bin", "/usr/local/git/bin")
         git_path = _test_paths_for_executable(extra_paths, git_cmd)
     return git_path
+
+
 GIT = find_git()
 
 previous_branch = defaultdict(lambda: None)
+
 
 class BranchedWorkspace(sublime_plugin.EventListener):
     def on_activated_async(self, view):
@@ -91,7 +94,8 @@ class BranchedWorkspace(sublime_plugin.EventListener):
         if not previous_branch[working_dir]:
             # we try to load a saved config
             self.close_root(new_root)
-            self.load_branch(new_branch, new_root)
+            project_data = sublime.active_window().project_data()
+            self.load_branch(new_branch, new_root, project_data)
             previous_branch[new_root] = new_branch
         elif previous_branch[working_dir] != new_branch:
             # we need to save the current state
@@ -113,19 +117,20 @@ class BranchedWorkspace(sublime_plugin.EventListener):
             self.save_current_branch(dic, previous_branch[working_dir], new_root)
             previous_branch[new_root] = new_branch
             self.close_root(new_root)
-            self.load_branch(new_branch, new_root)
+            project_data = sublime.active_window().project_data()
+            self.load_branch(new_branch, new_root, project_data)
             for win in dic:
                 print("win " + str(win))
                 for doc in dic[win]:
                     print("\t" + doc)
 
     def close_root(self, root):
-        print("running def close_root(self, "+str(root)+"):")
+        print("running def close_root(self, " + str(root) + "):")
         for win in sublime.windows():
             if win.folders() != [] and win.folders()[0] == root:
                 for view in win.views():
                     view.set_scratch(True)
-                win.run_command('close_all')
+                win.run_command("close_all")
 
     def load_saved_projects(self, view):
         print("running def load_saved_projects(self, view):")
@@ -133,43 +138,41 @@ class BranchedWorkspace(sublime_plugin.EventListener):
         print(root)
 
     def save_current_branch(self, dic, branch, root):
-        print("running def save_current_branch(self, dic, "+str(branch)+", "+str(root)+"):")
+        print(
+            "running def save_current_branch(self, dic, " + str(branch) + ", " + str(root) + "):"
+        )
         if not root:
             print("save: off of git")
         else:
             print("saving branch: " + branch)
-            path = root + '/.git/BranchedProjects.sublime'
+            path = root + "/.git/BranchedProjects.sublime"
             obj = {}
             if os.path.isfile(path):
-                with open(path, 'rb') as f:
+                with open(path, "rb") as f:
                     obj = pickle.load(f)
                     f.close()
             obj[branch] = dic
-            with open(path, 'w+b') as f:
+            with open(path, "w+b") as f:
                 pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
                 f.close()
 
-
-    def load_branch(self, branch, root):
-        print("running def load_branch(self, "+str(branch)+", "+str(root)+"):")
+    def load_branch(self, branch, root, project_data):
+        print("running def load_branch(self, " + str(branch) + ", " + str(root) + "):")
         if not root:
             print("load: off of git")
         else:
             print("load branch: " + branch)
-            path = root + '/.git/BranchedProjects.sublime'
+            path = root + "/.git/BranchedProjects.sublime"
             obj = defaultdict(lambda: defaultdict(list))
             if os.path.isfile(path):
-                with open(path, 'rb') as f:
+                with open(path, "rb") as f:
                     tmp = pickle.load(f)
                     for o in tmp:
                         obj[o] = tmp[o]
                     f.close()
-
             for win in obj[branch]:
                 new_win = sublime.active_window()
-                new_win.set_project_data({
-                    'folders': [{'path': root, 'follow_symlinks': True}]
-                })
+                new_win.set_project_data(project_data)
                 for doc in obj[branch][win]:
                     if os.path.isfile(doc):
                         print("loading file " + doc)
@@ -183,23 +186,24 @@ class BranchedWorkspace(sublime_plugin.EventListener):
                     break
 
             if no_win:
-                sublime.run_command('new_window')
+                sublime.run_command("new_window")
                 new_win = sublime.active_window()
-                new_win.set_project_data({
-                    'folders': [{'path': root, 'follow_symlinks': True}]
-                })
+                new_win.set_project_data(project_data)
+
 
 git_root_cache = {}
+
+
 def git_root(directory):
-    print("running def git_root("+str(directory)+"):")
+    print("running def git_root(" + str(directory) + "):")
     retval = False
     leaf_dir = directory
 
-    if leaf_dir in git_root_cache and git_root_cache[leaf_dir]['expires'] > time.time():
-        return git_root_cache[leaf_dir]['retval']
+    if leaf_dir in git_root_cache and git_root_cache[leaf_dir]["expires"] > time.time():
+        return git_root_cache[leaf_dir]["retval"]
 
     while directory:
-        if os.path.exists(os.path.join(directory, '.git')):
+        if os.path.exists(os.path.join(directory, ".git")):
             retval = directory
             break
         parent = os.path.realpath(os.path.join(directory, os.path.pardir))
@@ -208,9 +212,6 @@ def git_root(directory):
             break
         directory = parent
 
-    git_root_cache[leaf_dir] = {
-        'retval': retval,
-        'expires': time.time() + 5
-    }
+    git_root_cache[leaf_dir] = {"retval": retval, "expires": time.time() + 5}
 
     return retval
