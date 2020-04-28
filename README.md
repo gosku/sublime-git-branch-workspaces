@@ -1,4 +1,4 @@
-# ST_Plugins
+# Sublime Restore Git Branch workspace
 
 ### Install
 
