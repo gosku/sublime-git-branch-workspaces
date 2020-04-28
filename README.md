@@ -1,4 +1,4 @@
-# Sublime Restore Git Branch workspace
+# Sublime Git Branch Workspaces
 
 ### Install
 
