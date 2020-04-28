@@ -7,7 +7,7 @@
 In Terminal.app, run:
 
     cd ~/Library/Application\ Support/Sublime\ Text\ 3/Packages
-    git clone https://github.com/gosku/ST_Plugins.git
+    git clone https://github.com/gosku/sublime-git-branch-workspaces
 
 Then restart ST3.
 
@@ -16,7 +16,7 @@ Then restart ST3.
 Clone the project in your `Packages` directory:
 
     cd ~/.config/Sublime\ Text\ 3/Packages
-    git clone https://github.com/gosku/ST_Plugins.git
+    git clone https://github.com/gosku/sublime-git-branch-workspaces
 
 Then restart ST3.
 
