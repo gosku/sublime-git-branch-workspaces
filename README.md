@@ -7,7 +7,16 @@
 In Terminal.app, run:
 
     cd ~/Library/Application\ Support/Sublime\ Text\ 3/Packages
-    git clone https://github.com/Xaelias/ST_Plugins.git
+    git clone https://github.com/gosku/ST_Plugins.git
+
+Then restart ST3.
+
+##### ST3 on Linux
+
+Clone the project in your `Packages` directory:
+
+    cd ~/.config/Sublime\ Text\ 3/Packages
+    git clone https://github.com/gosku/ST_Plugins.git
 
 Then restart ST3.
 
