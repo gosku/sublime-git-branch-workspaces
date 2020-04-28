@@ -4,6 +4,7 @@ import re
 import subprocess
 import time
 from collections import defaultdict
+from pprint import pprint
 
 import sublime
 import sublime_plugin
@@ -119,10 +120,10 @@ class BranchedWorkspace(sublime_plugin.EventListener):
             self.previous_branch[git_root] = current_branch
         elif self.previous_branch[working_dir] != current_branch:
 
-            self.save_current_branch(self.previous_branch[working_dir], git_root)
+            self.save_previous_branch(self.previous_branch[working_dir], git_root)
             self.previous_branch[git_root] = current_branch
             self.close_all_views(git_root)
-            self.load_branch(current_branch, git_root)
+            self.load_branch(window, current_branch, git_root)
 
     def close_all_views(self, root):
         print("running def close_all_views(self, " + str(root) + "):")
@@ -132,33 +133,41 @@ class BranchedWorkspace(sublime_plugin.EventListener):
                     view.set_scratch(True)
                 win.run_command("close_all")
 
-    def save_current_branch(self, branch, git_root):
-        print("running def save_current_branch")
+    def save_previous_branch(self, branch, git_root):
+        print("running def save_previous_branch")
 
         # we need to save the current state
         # and load the saved state (if any) for the new branch
-        dic = defaultdict(list)
+        windows_to_save = defaultdict(list)
         for win in sublime.windows():
             # we only care about the same git repository
             if win.folders() == [] or win.folders()[0] != git_root:
                 continue
-            for doc in win.views():
-                name = doc.file_name()
-                if name is not None:
-                    print("adding file " + name)
-                    dic[win.id()].append(name)
-            if dic[win.id()] == []:
-                # dic[win.id()] = win.folders()
-                pass
+
+            window = {}
+            window["layout"] = win.get_layout()
+            window["views"] = []
+            for _view in win.views():
+                view = {}
+                name = _view.file_name()
+                if name is None:
+                    continue
+                print("adding file " + name)
+                view["filename"] = name
+                view["view_index"] = win.get_view_index(_view)
+                window["views"].append(view)
+            windows_to_save[win.id()] = window
 
         print("saving branch: " + branch)
+        print("content:")
+        pprint(windows_to_save)
         path = git_root + "/.git/BranchedProjects.sublime"
         obj = {}
         if os.path.isfile(path):
             with open(path, "rb") as f:
                 obj = pickle.load(f)
                 f.close()
-        obj[branch] = dic
+        obj[branch] = windows_to_save
         with open(path, "w+b") as f:
             pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
             f.close()
@@ -173,34 +182,38 @@ class BranchedWorkspace(sublime_plugin.EventListener):
         print("running def load_branch(self, " + str(branch) + ", " + str(root) + "):")
         if not root:
             print("load: off of git")
-        else:
-            print("load branch: " + branch)
-            path = root + "/.git/BranchedProjects.sublime"
-            obj = defaultdict(lambda: defaultdict(list))
-            if os.path.isfile(path):
-                with open(path, "rb") as f:
-                    tmp = pickle.load(f)
-                    for o in tmp:
-                        obj[o] = tmp[o]
-                    f.close()
-            for win in obj[branch]:
-                # Restore project settings in new window
-                project_data = prev_window.project_data()
-                new_win = sublime.active_window()
-                new_win.set_project_data(project_data)
-                for doc in obj[branch][win]:
-                    if os.path.isfile(doc):
-                        print("loading file " + doc)
-                        new_win.open_file(doc)
-            no_win = True
-            for win in sublime.windows():
-                win_root = win.folders()
-                win_root = win_root[0] if win_root != [] else None
-                if win_root == root:
-                    no_win = False
-                    break
+            return
 
-            if no_win:
-                sublime.run_command("new_window")
-                new_win = sublime.active_window()
-                new_win.set_project_data(project_data)
+        print("load branch: " + branch)
+        path = root + "/.git/BranchedProjects.sublime"
+        obj = defaultdict(lambda: defaultdict(list))
+        if os.path.isfile(path):
+            with open(path, "rb") as f:
+                tmp = pickle.load(f)
+                for o in tmp:
+                    obj[o] = tmp[o]
+                f.close()
+        for win in obj[branch].values():
+            # Restore project settings in new window
+            project_data = prev_window.project_data()
+            new_win = sublime.active_window()
+            new_win.set_project_data(project_data)
+            pprint(win)
+            new_win.set_layout(win["layout"])
+            for view in win["views"]:
+                if os.path.isfile(view["filename"]):
+                    print("loading file " + view["filename"])
+                    _view = new_win.open_file(view["filename"])
+                    new_win.set_view_index(_view, view["view_index"][0], view["view_index"][1])
+        no_win = True
+        for win in sublime.windows():
+            win_root = win.folders()
+            win_root = win_root[0] if win_root != [] else None
+            if win_root == root:
+                no_win = False
+                break
+
+        if no_win:
+            sublime.run_command("new_window")
+            new_win = sublime.active_window()
+            new_win.set_project_data(project_data)
