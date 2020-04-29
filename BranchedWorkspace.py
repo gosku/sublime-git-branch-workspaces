@@ -155,6 +155,7 @@ class BranchedWorkspace(sublime_plugin.EventListener):
                 print("adding file " + name)
                 view["filename"] = name
                 view["view_index"] = win.get_view_index(_view)
+                view["scroll"] = _view.viewport_position()
                 window["views"].append(view)
             windows_to_save[win.id()] = window
 
@@ -205,6 +206,7 @@ class BranchedWorkspace(sublime_plugin.EventListener):
                     print("loading file " + view["filename"])
                     _view = new_win.open_file(view["filename"])
                     new_win.set_view_index(_view, view["view_index"][0], view["view_index"][1])
+                    self.set_file_scroll(_view, view["scroll"])
         no_win = True
         for win in sublime.windows():
             win_root = win.folders()
@@ -217,3 +219,10 @@ class BranchedWorkspace(sublime_plugin.EventListener):
             sublime.run_command("new_window")
             new_win = sublime.active_window()
             new_win.set_project_data(project_data)
+
+    def set_file_scroll(self, view, scroll):
+        print("running def set_file_scroll(self, %s, %s):" % (view, scroll))
+        if view.is_loading():
+            sublime.set_timeout(lambda: self.set_file_scroll(view, scroll), 0)
+        else:
+            view.set_viewport_position(scroll, False)

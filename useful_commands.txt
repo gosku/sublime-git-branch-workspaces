@@ -1,5 +1,52 @@
 views_in_group(group)   [View]  Returns all open views in the given group.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 num_groups()    int     Returns the number of view groups in the window.
 
 get_view_index(view)  (int, int)  Returns the group, and index within the group of the view. Returns -1 if not found.
