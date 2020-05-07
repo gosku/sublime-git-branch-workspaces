@@ -146,6 +146,9 @@ class BranchedWorkspace(sublime_plugin.EventListener):
 
             window = {}
             window["layout"] = win.get_layout()
+            window["active_views"] = []
+            for group in range(0, win.num_groups()):
+                window["active_views"].append(win.active_view_in_group(group).file_name())
             window["views"] = []
             for _view in win.views():
                 view = {}
@@ -201,12 +204,18 @@ class BranchedWorkspace(sublime_plugin.EventListener):
             new_win.set_project_data(project_data)
             pprint(win)
             new_win.set_layout(win["layout"])
+            focused_views = []
             for view in win["views"]:
                 if os.path.isfile(view["filename"]):
                     print("loading file " + view["filename"])
                     _view = new_win.open_file(view["filename"])
                     new_win.set_view_index(_view, view["view_index"][0], view["view_index"][1])
                     self.set_file_scroll(_view, view["scroll"])
+                    if win.get("active_views") and view["filename"] in win["active_views"]:
+                        focused_views.append(_view)
+            for focused_view in focused_views:
+                new_win.focus_view(focused_view)
+
         no_win = True
         for win in sublime.windows():
             win_root = win.folders()
