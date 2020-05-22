@@ -114,10 +114,12 @@ class BranchedWorkspace(sublime_plugin.EventListener):
         print("branch is " + str(current_branch))
 
         if not self.previous_branch[working_dir]:
-            # we try to load a saved config
-            self.close_all_views(git_root)
-            self.load_branch(window, current_branch, git_root)
+            # # we try to load a saved config
+            # self.close_all_views(git_root)
+            # self.load_branch(window, current_branch, git_root)
+            print("no previous branch")
             self.previous_branch[git_root] = current_branch
+            return
         elif self.previous_branch[working_dir] != current_branch:
 
             self.save_previous_branch(self.previous_branch[working_dir], git_root)
