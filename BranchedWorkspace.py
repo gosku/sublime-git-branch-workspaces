@@ -3,51 +3,72 @@ import pickle
 from collections import defaultdict
 from pprint import pprint
 
-import git_command
 import sublime
 import sublime_plugin
+
+from . import git_command
 
 
 class BranchedWorkspace(sublime_plugin.EventListener):
     def __init__(self):
         self.git = git_command.GitCommand(sublime.active_window())
+        self.window = sublime.active_window()
+        self.folders = self.window.folders()
+        self.working_dir = None if not self.folders else self.folders[0]
+        self.git_folder_path = None
         self.previous_branch = defaultdict(lambda: None)
+        self.current_branch = None
         return super().__init__()
 
     def on_activated_async(self, view):
         print("running def on_activated(self, view):")
-        window = sublime.active_window()
-        folders = window.folders()
-        print("folders " + str(folders))
-        working_dir = None if not folders else folders[0]
-        git_root = self.git.get_git_root(working_dir)
 
-        if not git_root:
+        self.refresh_attributes()
+
+        if not self.should_activate():
             return
 
-        # the plugin only activates when the root folder is the git folder
-        if working_dir != git_root:
-            return
+        print("branch is " + str(self.current_branch))
 
-        current_branch = self.git.getBranch()
-        if not current_branch:
-            return
-
-        print("branch is " + str(current_branch))
-
-        if not self.previous_branch[working_dir]:
+        # First time running this method since sublime was opened
+        if not self.previous_branch[self.working_dir]:
             # # we try to load a saved config
-            # self.close_all_views(git_root)
-            # self.load_branch(window, current_branch, git_root)
+            # self.close_all_views(self.git_folder_path)
+            # self.load_branch(window, current_branch, self.git_folder_path)
             print("no previous branch")
-            self.previous_branch[git_root] = current_branch
+            self.previous_branch[self.git_folder_path] = self.current_branch
             return
-        elif self.previous_branch[working_dir] != current_branch:
+        elif self.previous_branch[self.working_dir] != self.current_branch:
 
-            self.save_previous_branch(self.previous_branch[working_dir], git_root)
-            self.previous_branch[git_root] = current_branch
-            self.close_all_views(git_root)
-            self.load_branch(window, current_branch, git_root)
+            self.save_previous_branch(self.previous_branch[self.working_dir])
+            self.previous_branch[self.working_dir] = self.current_branch
+            self.close_all_views(self.git_folder_path)
+            self.load_branch(self.window, self.current_branch, self.git_folder_path)
+
+    def refresh_attributes(self):
+        self.window = sublime.active_window()
+        self.folders = self.window.folders()
+        self.working_dir = None if not self.folders else self.folders[0]
+        self.git_folder_path = self.git.get_git_folder_path(self.working_dir)
+        self.current_branch = self.git.getBranch()
+
+    def should_activate(self):
+        if not self.working_dir:
+            return False
+
+        if not self.git_folder_path:
+            return False
+
+        if self.working_dir != self.git_folder_path:
+            return False
+
+        if not self.current_branch:
+            return False
+
+        if len(sublime.windows()) > 1:
+            return False
+
+        return True
 
     def close_all_views(self, root):
         print("running def close_all_views(self, " + str(root) + "):")
@@ -57,7 +78,7 @@ class BranchedWorkspace(sublime_plugin.EventListener):
                     view.set_scratch(True)
                 win.run_command("close_all")
 
-    def save_previous_branch(self, branch, git_root):
+    def save_previous_branch(self, branch):
         print("running def save_previous_branch")
 
         # we need to save the current state
@@ -65,7 +86,7 @@ class BranchedWorkspace(sublime_plugin.EventListener):
         windows_to_save = defaultdict(list)
         for win in sublime.windows():
             # we only care about the same git repository
-            if win.folders() == [] or win.folders()[0] != git_root:
+            if win.folders() == [] or win.folders()[0] != self.git_folder_path:
                 continue
 
             window = {}
@@ -89,7 +110,7 @@ class BranchedWorkspace(sublime_plugin.EventListener):
         print("saving branch: " + branch)
         print("content:")
         pprint(windows_to_save)
-        path = git_root + "/.git/BranchedProjects.sublime"
+        path = self.git_folder_path + "/.git/BranchedProjects.sublime"
         obj = {}
         if os.path.isfile(path):
             with open(path, "rb") as f:

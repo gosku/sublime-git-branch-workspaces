@@ -10,7 +10,7 @@ import sublime_plugin
 class GitCommand(sublime_plugin.WindowCommand):
     def __init__(self, window):
         self.root_cache = {}
-        self.git_path = self.get_git_path()
+        self.git_path = self.get_git_exec_path()
 
         return super().__init__(window)
 
@@ -31,7 +31,7 @@ class GitCommand(sublime_plugin.WindowCommand):
             return None
         return abbrev_ref
 
-    def get_git_root(self, directory):
+    def get_git_folder_path(self, directory):
         print("running def git_root(" + str(directory) + "):")
         retval = None
         leaf_dir = directory
@@ -53,7 +53,7 @@ class GitCommand(sublime_plugin.WindowCommand):
 
         return retval
 
-    def get_git_path(self):
+    def get_git_exec_path(self):
         print("running def find_git():")
         path = os.environ.get("PATH", "").split(os.pathsep)
         if os.name == "nt":
