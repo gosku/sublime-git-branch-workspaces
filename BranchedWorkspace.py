@@ -155,7 +155,7 @@ class BranchedWorkspace(sublime_plugin.EventListener):
                     print("loading file " + view["filename"])
                     _view = new_win.open_file(view["filename"])
                     new_win.set_view_index(_view, view["view_index"][0], view["view_index"][1])
-                    self.set_file_scroll(_view, view["scroll"])
+                    sublime.set_timeout_async(lambda: self.set_file_scroll(_view, view["scroll"]))
                     if win.get("active_views") and view["filename"] in win["active_views"]:
                         focused_views.append(_view)
             for focused_view in focused_views:
