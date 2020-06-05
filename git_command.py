@@ -15,14 +15,12 @@ class GitCommand(sublime_plugin.WindowCommand):
         return super().__init__(window)
 
     def run_command(self, command):
-        print("running def run_command(" + str(command) + "):")
         command = [arg for arg in re.split(r"\s+", command) if arg]
         if command[0] == "git":
             command[0] = self.git_path
         return subprocess.check_output(command).decode("ascii").strip()
 
-    def getBranch(self):
-        print("running def getBranch():")
+    def get_branch(self):
         os.chdir(sublime.active_window().folders()[0])
         abbrev_ref = self.run_command("git rev-parse --abbrev-ref HEAD")
 
@@ -32,7 +30,6 @@ class GitCommand(sublime_plugin.WindowCommand):
         return abbrev_ref
 
     def get_git_folder_path(self, directory):
-        print("running def git_root(" + str(directory) + "):")
         retval = None
         leaf_dir = directory
 
