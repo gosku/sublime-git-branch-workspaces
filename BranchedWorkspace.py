@@ -95,9 +95,9 @@ class BranchedWorkspace(sublime_plugin.EventListener):
         # current set of open files.
         # This check is useful for when we invoke sublime from command line with hot exit enabled
         # and sublime loads the previous open project + the new file passed as an argument
-        # if self.stored_branch_session_is_subset_of_current_session():
-        #     print("stored branch session is subset of current session")
-        #     return False
+        if self.stored_branch_session_is_subset_of_current_session():
+            print("stored branch session is subset of current session")
+            return False
 
         return True
 
