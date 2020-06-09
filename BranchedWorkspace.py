@@ -132,7 +132,7 @@ class BranchedWorkspace(sublime_plugin.EventListener):
                     for o in tmp:
                         branch_sessions_dict[o] = tmp[o]
                     f.close()
-        self.stored_branch_sessions = branch_sessions_for_storing
+        self.stored_branch_sessions = branch_sessions_dict
         return self.stored_branch_sessions
 
     def serialize_current_session(self):
@@ -237,9 +237,10 @@ class BranchedWorkspace(sublime_plugin.EventListener):
                 print("loading file " + serialized_view["filename"])
                 view = new_win.open_file(serialized_view["filename"])
                 sublime.set_timeout_async(
-                    lambda view=view, serialized_view=copy.deepcopy(serialized_view):
-                        self.load_view(view, new_win, serialized_view, stored_serialized_session),
-                    5
+                    lambda view=view, serialized_view=copy.deepcopy(
+                        serialized_view
+                    ): self.load_view(view, new_win, serialized_view, stored_serialized_session),
+                    5,
                 )
 
             if (
@@ -254,14 +255,17 @@ class BranchedWorkspace(sublime_plugin.EventListener):
         # print("Running def load_view(): for filename %s" % serialized_view["filename"])
         if view.is_loading():
             sublime.set_timeout_async(
-                lambda: self.load_view(view, window, serialized_view, stored_serialized_session),
-                5
+                lambda: self.load_view(view, window, serialized_view, stored_serialized_session), 5
             )
         else:
-            window.set_view_index(view, serialized_view["view_index"][0], serialized_view["view_index"][1])
+            window.set_view_index(
+                view, serialized_view["view_index"][0], serialized_view["view_index"][1]
+            )
 
             print("Set scroll to (%s, %s)" % serialized_view["scroll"])
-            sublime.set_timeout(lambda: view.set_viewport_position(serialized_view["scroll"], False), 50)
+            sublime.set_timeout(
+                lambda: view.set_viewport_position(serialized_view["scroll"], False), 50
+            )
 
             print("Loaded view: " + view.file_name())
 
